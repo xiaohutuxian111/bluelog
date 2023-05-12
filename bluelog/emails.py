@@ -17,7 +17,7 @@ def _send_async_mail(app, message):
 
 
 def send_mail(subject, to, html):
-    app = current_app._get_currentt_object()
+    app = current_app._get_current_object()
     message = Message(subject, recipients=[to], html=html)
     thr = Thread(target=_send_async_mail, args=[app, message])
     thr.start()
@@ -25,8 +25,8 @@ def send_mail(subject, to, html):
 
 
 def send_new_comment_email(post):
-    post_url = url_for('blog.show_poat', post_id=post.id, _external=True) + "#commnets"
-    send_mail(subject='New Commmnet', to=current_app.config['BLUELOG_EMAIL'],
+    post_url = url_for('blog.show_post', post_id=post.id, _external=True) + "#comments"
+    send_mail(subject='New Comment', to=current_app.config['BLUELOG_EMAIL'],
               html='<p>New comment in post <i>%s</i>, click the link below to check:</p>'
                    '<p><a href="%s">%s</a></P>'
                    '<p><small style="color: #868e96">Do not reply this email.</small></p>'
