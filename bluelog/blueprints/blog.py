@@ -11,11 +11,15 @@ from  bluelog.models import  Post
 blog_bp = Blueprint('blog', __name__)
 
 
-@blog_bp.route('/')
-def index():
+
+
+
+@blog_bp.route("/",defaults={'page':1})
+@blog_bp.route('/page/<int:page>')
+def index(page):
     # posts = Post.query.order_by(Post.timestamp.desc()).all()
     #查询字符串获取当前的页数
-    page  = request.args.get('page',1,type=int)
+    # page  = request.args.get('page',1,type=int)
     #  每页数量
     per_page = current_app.config['BLUELOG_POST_PER_PAGE']
     #  分页对象
