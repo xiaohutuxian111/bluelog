@@ -39,4 +39,8 @@
             {% endif %}
         </div>
     </div>
+    {% if posts %}
+        <div class="page-footer">{{ render_pager(pagination) }}</div>
+    {% endif %}
 {% endblock %}
+
