@@ -13,8 +13,16 @@ blog_bp = Blueprint('blog', __name__)
 
 @blog_bp.route('/')
 def index():
-    posts = Post.query.order_by(Post.timestamp.desc()).all()
-    return render_template('blog/index.html',posts=posts)
+    # posts = Post.query.order_by(Post.timestamp.desc()).all()
+    #查询字符串获取当前的页数
+    page  = request.args.get('page',1,type=int)
+    #  每页数量
+    per_page = current_app.config['BLUELOG_POST_PER_PAGE']
+    #  分页对象
+    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(page=page,per_page=per_page)
+    # 当前页数的记录列表
+    posts = pagination.items
+    return render_template('blog/index.html',pagination=pagination,posts=posts)
 
 
 @blog_bp.route('/about')
