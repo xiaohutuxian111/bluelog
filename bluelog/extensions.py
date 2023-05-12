@@ -12,6 +12,6 @@ from flask_moment import Moment
 
 bootstrap = Bootstrap()
 db = SQLAlchemy()
-moment = Moment()
 ckeditor = CKEditor()
+moment = Moment()
 mail = Mail()
