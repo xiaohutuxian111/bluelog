@@ -8,7 +8,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, current_app, flash
 from bluelog.forms import SettingsForm, PostForm, CategoryForm, LinkForm
 from bluelog.utils import redirect_back
-from bluelog.models import Post, Category
+from bluelog.models import Post, Category, Comment
 from flask_login import current_user, login_required
 from bluelog.extensions import db
 
@@ -85,22 +85,54 @@ def delete_post(post_id):
 
 
 @admin_bp.route('/post/<int:post_id>/set-comment', methods=['POST'])
+@login_required
 def set_comment(post_id):
+    post =  Post.query.get_or_404(post_id)
+    if post.can_comment:
+        post.can_comment=False
+        flash("关闭评论功能",'success')
+    else:
+        post.can_comment = True
+        flash("开启评论功能", 'success')
+    db.session.commit()
     return redirect_back()
 
 
 @admin_bp.route('/comment/manage')
+@login_required
 def manage_comment():
-    return render_template('admin/manage_comment.html')
+    # 从查询字符串中获取过滤规则
+    filter_rule =  request.args.get('filter','all')
+    page = request.args.get('page',1,type=int)
+    per_page = current_app.config['BLUELOG_COMMENT_PER_PAGE']
+    if  filter_rule == 'unread':
+        filter_comments = Comment.query.filter_by(reviewed=False)
+    elif  filter_rule == 'admin':
+        filter_comments = Comment.query.filter_by(from_admin=True)
+    else:
+        filter_comments = Comment.query
+    pagination = filter_comments.order_by(Comment.timestamp.desc()).paginate(page=page,per_page=per_page)
+    comments = pagination.items
+
+    return render_template('admin/manage_comment.html',comments=comments,pagination=pagination)
 
 
 @admin_bp.route('/comment/<int:comment_id>/approve', methods=['POST'])
+@login_required
 def approve_comment(comment_id):
+    comment= Comment.query.get_or_404(comment_id)
+    comment.reviewed =True
+    db.session.commit()
+    flash("评论可以发布",'success')
     return redirect_back()
 
 
 @admin_bp.route('/comment/<int:comment_id>/delete', methods=['POST'])
 def delete_comment(comment_id):
+    comment = Comment.query.get_or_404(comment_id)
+    db.session.delete(comment)
+    db.session.commit()
+    flash("评论已经删除",'success')
     return redirect_back()
 
 
