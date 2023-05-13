@@ -135,15 +135,16 @@ import os
 
 import click
 from flask import Flask, render_template
+from flask_login import current_user
 
 from bluelog.blueprints.admin import admin_bp
 from bluelog.blueprints.auth import auth_bp
 from bluelog.blueprints.blog import blog_bp
-from bluelog.extensions import bootstrap, db, ckeditor, mail, moment, login_manager,csrf
+from bluelog.extensions import bootstrap, db, ckeditor, mail, moment, login_manager, csrf
 from bluelog.models import Admin, Post, Category, Comment, Link
 from bluelog.settings import config
 
-from flask_wtf.csrf import  CSRFError
+from flask_wtf.csrf import CSRFError
 
 basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
@@ -170,9 +171,6 @@ def register_logging(app):
     pass
 
 
-
-
-
 def register_extensions(app):
     bootstrap.init_app(app)
     db.init_app(app)
@@ -189,9 +187,6 @@ def register_blueprints(app):
     app.register_blueprint(auth_bp, url_prefix='/auth')
 
 
-
-
-
 def register_shell_context(app):
     @app.shell_context_processor
     def make_shell_context():
@@ -204,7 +199,12 @@ def register_template_context(app):
         admin = Admin.query.first()
         categories = Category.query.order_by(Category.name).all()
         links = Link.query.order_by(Link.name).all()
-        return dict(admin=admin, categories=categories, links=links)
+        if current_user.is_authenticated:
+            unread_comments = Comment.query.filter_by(reviewed=False).count()
+        else:
+            unread_comments = None
+
+        return dict(admin=admin, categories=categories, links=links, unread_comments=unread_comments)
 
 
 def register_errors(app):
@@ -223,8 +223,7 @@ def register_errors(app):
     @app.errorhandler(CSRFError)
     def csdf_error(e):
         """自定义csdf错误返回"""
-        return  render_template('errors/404.html',description=e.description), 400
-
+        return render_template('errors/404.html', description=e.description), 400
 
 
 def register_commands(app):
