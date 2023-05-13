@@ -131,7 +131,6 @@
 #         click.echo("数据生成完成")
 
 
-
 import os
 
 import click
@@ -181,7 +180,10 @@ def register_blueprints(app):
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(auth_bp, url_prefix='/auth')
 
+
 1
+
+
 def register_shell_context(app):
     @app.shell_context_processor
     def make_shell_context():
@@ -222,6 +224,40 @@ def register_commands(app):
             click.echo('Drop tables.')
         db.create_all()
         click.echo('Initialized database.')
+
+    @app.cli.command()
+    @click.option('--username', prompt=True, help='用户名')
+    @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True, help='登陆密码')
+    def init(username, password):
+        """博客初始化"""
+        db.create_all()
+
+        admin = Admin.query.first()
+
+        if admin is not None:
+            click.echo("管理员用户已经存在请更新用户名和密码")
+            admin.username = username
+            admin.set_password(password)
+        else:
+            click.echo("不存在管理员账户，请重新创建")
+            admin = Admin(
+                username=username,
+                blog_title='博客',
+                blog_sub_title="创建博客起点",
+                name='Admin',
+                about='拥有所有的权力'
+            )
+            admin.set_password(password)
+            db.session.add(admin)
+
+        #  创建默认分类
+        category = Category.query.first()
+        if category is None:
+            click.echo("分类为空,创建默认一条")
+            category = Category(name='Default')
+            db.session.add(category)
+        db.session.commit()
+        click.echo("初始化完成")
 
     @app.cli.command()
     @click.option('--category', default=10, help='Quantity of categories, default is 10.')
