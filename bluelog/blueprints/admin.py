@@ -26,6 +26,18 @@ admin_bp = Blueprint('admin', __name__)
 @admin_bp.route('/settings', methods=['GET', 'POST'])
 def settings():
     form = SettingsForm()
+    if form.validate_on_submit():
+        current_user.name = form.name.data
+        current_user.blog_title = form.blog_title.data
+        current_user.blog_sub_title = form.blog_sub_title.data
+        current_user.about = form.about.data
+        db.session.commit()
+        flash("设置已经更新", 'success')
+        return redirect(url_for('blog.index'))
+    form.name.data = current_user.name
+    form.blog_title.data = current_user.blog_title
+    form.blog_sub_title = current_user.blog_sub_title
+    form.about.data = current_user.about
     return render_template('admin/settings.html', form=form)
 
 
@@ -128,6 +140,7 @@ def approve_comment(comment_id):
 
 
 @admin_bp.route('/comment/<int:comment_id>/delete', methods=['POST'])
+@login_required
 def delete_comment(comment_id):
     comment = Comment.query.get_or_404(comment_id)
     db.session.delete(comment)
@@ -137,28 +150,57 @@ def delete_comment(comment_id):
 
 
 @admin_bp.route('/category/manage')
+@login_required
 def manage_category():
     return render_template('admin/manage_category.html')
 
 
 @admin_bp.route('/category/new', methods=['GET', 'POST'])
+@login_required
 def new_category():
     form = CategoryForm()
+    if form.validate_on_submit():
+        name = form.name.data
+        category = Category(name=name)
+        db.session.add(category)
+        db.session.commit()
+        flash("分类标签添加成功", 'success')
+        return redirect(url_for('.manage_category'))
     return render_template('admin/new_category.html', form=form)
 
 
 @admin_bp.route('/category/<int:category_id>/edit', methods=['GET', 'POST'])
+@login_required
 def edit_category(category_id):
     form = CategoryForm()
+    category = Category.query.get_or_404(category_id)
+    if category_id == 1:
+        flash("默认分类标签不能编辑", 'warning')
+        return redirect('blog.index')
+    if form.validate_on_submit():
+        category.name = form.name.data
+        db.session.commit()
+        flash("分类标签更新成功", 'success')
+        return redirect(url_for('.manage_category'))
+
+    form.name = category.name
     return render_template('admin/edit_category.html', form=form)
 
 
 @admin_bp.route('/category/<int:category_id>/delete', methods=['POST'])
+@login_required
 def delete_category(category_id):
+    category = Category.query.get_or_404(category_id)
+    if category.id == 1:
+        flash("默认分类标签不能删除", 'warning')
+        return redirect('blog.index')
+    category.delete()
+    flash("分类标签删除成功", 'success')
     return redirect(url_for('.manage_category'))
 
 
 @admin_bp.route('/link/manage')
+@login_required
 def manage_link():
     return render_template('admin/manage_link.html')
 
