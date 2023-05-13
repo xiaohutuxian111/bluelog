@@ -8,8 +8,16 @@
 from flask import Blueprint, render_template, redirect, url_for
 from bluelog.forms import SettingsForm, PostForm, CategoryForm, LinkForm
 from bluelog.utils import redirect_back
+from flask_login import current_user, login_required
 
 admin_bp = Blueprint('admin', __name__)
+
+
+@admin_bp.before_request
+@login_required
+def login_protect():
+    """保证使用admin蓝图都要已登录"""
+    pass
 
 
 @admin_bp.route('/settings', methods=['GET', 'POST'])
@@ -18,17 +26,15 @@ def settings():
     return render_template('admin/settings.html', form=form)
 
 
-
 @admin_bp.route('/post/manage')
 def manage_post():
-    return  render_template('admin/manage_post.html')
+    return render_template('admin/manage_post.html')
 
 
-
-@admin_bp.route('/post/new',methods=['POST','GET'])
-def  new_post():
+@admin_bp.route('/post/new', methods=['POST', 'GET'])
+def new_post():
     form = PostForm()
-    return render_template('admin/new_post.html',form=form)
+    return render_template('admin/new_post.html', form=form)
 
 
 @admin_bp.route('/post/<int:post_id>/edit', methods=['GET', 'POST'])

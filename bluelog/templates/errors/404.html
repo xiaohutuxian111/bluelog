@@ -8,7 +8,7 @@
     </div>
     <div class="row">
         <div class="col-sm-8">
-            <p>Page Not Found</p>
+             <p>{{ description|default('页面丢失了') }}</p>
         </div>
         <div class="col-sm-4 sidebar">
             {% include 'blog/_sidebar.html' %}
