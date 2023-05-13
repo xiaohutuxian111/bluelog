@@ -8,7 +8,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, current_app, flash
 from bluelog.forms import SettingsForm, PostForm, CategoryForm, LinkForm
 from bluelog.utils import redirect_back
-from bluelog.models import Post, Category, Comment
+from bluelog.models import Post, Category, Comment, Link
 from flask_login import current_user, login_required
 from bluelog.extensions import db
 
@@ -87,10 +87,10 @@ def delete_post(post_id):
 @admin_bp.route('/post/<int:post_id>/set-comment', methods=['POST'])
 @login_required
 def set_comment(post_id):
-    post =  Post.query.get_or_404(post_id)
+    post = Post.query.get_or_404(post_id)
     if post.can_comment:
-        post.can_comment=False
-        flash("关闭评论功能",'success')
+        post.can_comment = False
+        flash("关闭评论功能", 'success')
     else:
         post.can_comment = True
         flash("开启评论功能", 'success')
@@ -102,28 +102,28 @@ def set_comment(post_id):
 @login_required
 def manage_comment():
     # 从查询字符串中获取过滤规则
-    filter_rule =  request.args.get('filter','all')
-    page = request.args.get('page',1,type=int)
+    filter_rule = request.args.get('filter', 'all')
+    page = request.args.get('page', 1, type=int)
     per_page = current_app.config['BLUELOG_COMMENT_PER_PAGE']
-    if  filter_rule == 'unread':
+    if filter_rule == 'unread':
         filter_comments = Comment.query.filter_by(reviewed=False)
-    elif  filter_rule == 'admin':
+    elif filter_rule == 'admin':
         filter_comments = Comment.query.filter_by(from_admin=True)
     else:
         filter_comments = Comment.query
-    pagination = filter_comments.order_by(Comment.timestamp.desc()).paginate(page=page,per_page=per_page)
+    pagination = filter_comments.order_by(Comment.timestamp.desc()).paginate(page=page, per_page=per_page)
     comments = pagination.items
 
-    return render_template('admin/manage_comment.html',comments=comments,pagination=pagination)
+    return render_template('admin/manage_comment.html', comments=comments, pagination=pagination)
 
 
 @admin_bp.route('/comment/<int:comment_id>/approve', methods=['POST'])
 @login_required
 def approve_comment(comment_id):
-    comment= Comment.query.get_or_404(comment_id)
-    comment.reviewed =True
+    comment = Comment.query.get_or_404(comment_id)
+    comment.reviewed = True
     db.session.commit()
-    flash("评论可以发布",'success')
+    flash("评论可以发布", 'success')
     return redirect_back()
 
 
@@ -132,7 +132,7 @@ def delete_comment(comment_id):
     comment = Comment.query.get_or_404(comment_id)
     db.session.delete(comment)
     db.session.commit()
-    flash("评论已经删除",'success')
+    flash("评论已经删除", 'success')
     return redirect_back()
 
 
@@ -164,17 +164,41 @@ def manage_link():
 
 
 @admin_bp.route('/link/new', methods=['GET', 'POST'])
+@login_required
 def new_link():
     form = LinkForm()
+    if form.validate_on_submit():
+        name = form.name.data
+        url = form.url.data
+        link = Link(name=name, url=url)
+        db.session.add(link)
+        db.session.commit()
+        flash("连接创建成功", 'success')
+        return redirect(url_for('.manage_link'))
     return render_template('admin/new_link.html', form=form)
 
 
 @admin_bp.route('/link/<int:link_id>/edit', methods=['GET', 'POST'])
+@login_required
 def edit_link(link_id):
     form = LinkForm()
+    link = Link.query.get_or_404(link_id)
+    if form.validate_on_submit():
+        link.name = form.name.data
+        link.url = form.url.data
+        db.session.commit()
+        flash("链接更新成功", 'success')
+        return redirect(url_for('.manage_link'))
+    form.name.data = link.name
+    form.url.data = link.url
     return render_template('admin/edit_link.html', form=form)
 
 
 @admin_bp.route('/link/<int:link_id>/delete', methods=['POST'])
+@login_required
 def delete_link(link_id):
+    link = Link.query.get_or_404(link_id)
+    db.session.delete(link)
+    db.session.commit()
+    flash("链接已经被删除", 'success')
     return redirect(url_for('.manage_link'))
