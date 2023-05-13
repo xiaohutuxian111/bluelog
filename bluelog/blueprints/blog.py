@@ -11,13 +11,9 @@ from bluelog.models import Post, Category, Comment
 from bluelog.extensions import db
 from bluelog.emails import send_new_comment_email, send_new_reply_email
 from bluelog.utils import redirect_back
+from flask_login import current_user
 
 blog_bp = Blueprint('blog', __name__)
-
-
-# skip it
-class current_user:
-    is_authenticated = True
 
 
 @blog_bp.route("/", defaults={'page': 1})
@@ -101,8 +97,7 @@ def show_post(post_id):
 @blog_bp.route('/reply/comment/<int:comment_id>')
 def reply_comment(comment_id):
     comment = Comment.query.get_or_404(comment_id)
-    # if comment.post.can_comment:
-    if False:
+    if not comment.post.can_comment:
         flash("评论未开启", 'warning')
         return redirect(url_for('.show_post', post_id=comment.post_id))
     return redirect(url_for('.show_post', post_id=comment.post_id, reply=comment_id, author=comment.author) +
@@ -114,5 +109,5 @@ def change_theme(theme_name):
     if theme_name not in current_app.config['BLUELOG_THEMES'].keys():
         abort(404)
     response = make_response(redirect_back())
-    response.set_cookie('theme',theme_name,max_age=30*24*60*60)
+    response.set_cookie('theme', theme_name, max_age=30 * 24 * 60 * 60)
     return response
