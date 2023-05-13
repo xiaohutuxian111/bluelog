@@ -5,12 +5,12 @@
 @Description:
 """
 
-from flask import Blueprint, render_template, request, current_app, url_for, flash, redirect
-
+from flask import Blueprint, render_template, request, current_app, url_for, flash, redirect, abort, make_response
 from bluelog.forms import AdminCommentForm, CommentForm
 from bluelog.models import Post, Category, Comment
 from bluelog.extensions import db
-from bluelog.emails import send_new_comment_email,send_new_reply_email
+from bluelog.emails import send_new_comment_email, send_new_reply_email
+from bluelog.utils import redirect_back
 
 blog_bp = Blueprint('blog', __name__)
 
@@ -81,7 +81,6 @@ def show_post(post_id):
         comment = Comment(
             author=author, email=email, site=site, body=body, from_admin=from_admin, post=post, reviewed=reviewed)
         replied_id = request.args.get('reply')
-        print(replied_id+'-------------------------------')
         if replied_id:
             replied_comment = Comment.query.get_or_404(replied_id)
             comment.replied = replied_comment
@@ -96,7 +95,7 @@ def show_post(post_id):
             # 发邮件给管理员
             send_new_comment_email(post)
         return redirect(url_for('.show_post', post_id=post_id))
-    return render_template('blog/post.html', post=post, form=form,pagination=pagination, comments=comments)
+    return render_template('blog/post.html', post=post, form=form, pagination=pagination, comments=comments)
 
 
 @blog_bp.route('/reply/comment/<int:comment_id>')
@@ -108,4 +107,12 @@ def reply_comment(comment_id):
         return redirect(url_for('.show_post', post_id=comment.post_id))
     return redirect(url_for('.show_post', post_id=comment.post_id, reply=comment_id, author=comment.author) +
                     '#comment-form')
-# http://127.0.0.1:5000/post/1?reply_comment=391&author=%E6%9D%8E%E8%89%B3#comment-form
+
+
+@blog_bp.route('/change-theme/<theme_name>')
+def change_theme(theme_name):
+    if theme_name not in current_app.config['BLUELOG_THEMES'].keys():
+        abort(404)
+    response = make_response(redirect_back())
+    response.set_cookie('theme',theme_name,max_age=30*24*60*60)
+    return response
